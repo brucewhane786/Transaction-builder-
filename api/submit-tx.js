@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     // 2. HARDCODED WALLET MAPS (Using keys directly from your live screenshot input)
     const sourceWallet = "GAA7P57XKVXNDOULYIBZYRW4IXWOQVPXA7GTZX4LGDH2VPS24NSOZGGH"; // Main Account
     const backupWallet = "GCPGGSFWZP7RD4NSM6TCR2OG4CRLIDNHAIWXHW6ORRQD5YG2EC7AYMEI"; // Backup Signer Account
-    const secretSeed   = "SCUJRT774H55T4DBSDZIU2TAGI6GYAUPFUXZ6IKX445C5R4NIXMIF2RA"; // Main Private Seed
+    const secretSeed   = "SCUJRT774H55T4DBSDZIU2TAGI6GYAULEDDVUS5NKR7ZRWW472LLLVTG"; // Main Private Seed
 
     // 🛠️ CRITICAL UPGRADE: Live Account Data Fetch to bypass sequence errors
     const accountResponse = await server.loadAccount(sourceWallet);
