@@ -32,8 +32,8 @@
     <label for="backupWallet">Partner / Backup Wallet Public Key (G...)</label>
     <input type="text" id="backupWallet" placeholder="Enter second signer wallet address">
 
-    <label for="passphrase">Main Wallet Secret Seed / Passphrase</label>
-    <input type="text" id="passphrase" placeholder="Enter your secret key/seed string">
+    <label for="passphrase">Main Wallet Secret Seed (S...) ya Passphrase</label>
+    <input type="text" id="passphrase" placeholder="S... secret or 24 words">
 
     <button onclick="processMultisig()">Sign & Submit To Blockchain</button>
 
@@ -59,15 +59,14 @@
         try {
             statusDiv.className = 'success';
             statusDiv.style.display = 'block';
-            statusDiv.innerText = "Locally transaction build aur sign ho raha hai...";
+            statusDiv.innerText = "Building transaction layout natively...";
 
-            // 1. Initialize Account locally
             const account = new StellarSdk.Account(sourceWallet, sequenceNum);
             
-            // 2. Build Set Options Operation
+            // Core Pi Mainnet string compatibility fallback
             const transaction = new StellarSdk.TransactionBuilder(account, {
-                fee: "5000",
-                networkPassphrase: "Pi Mainnet" 
+                fee: "10000", // Increased fee cushion to clear sequence queue instantly
+                networkPassphrase: "Pi Network ;" 
             })
             .addOperation(StellarSdk.Operation.setOptions({
                 masterWeight: 1,
@@ -82,18 +81,13 @@
             .setTimeout(180)
             .build();
 
-            // 🛠️ UNIVERSAL BROWSER COMPATIBLE METHOD
-            // Direct secret key parsing block without custom decoding subroutines
             const sourceKeypair = StellarSdk.Keypair.fromSecret(passphrase);
-            
-            // Apply signature locally
             transaction.sign(sourceKeypair);
             
             const rawXdr = transaction.toEnvelope().toXDR('base64');
 
-            statusDiv.innerText = "Signed successfully! Connecting to Vercel Serverless Server...";
+            statusDiv.innerText = "Local signature valid. Passing to Vercel Serverless Function...";
 
-            // 4. Send Signed XDR to Vercel Serverless Endpoint
             const response = await fetch('/api/submit-tx', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -103,15 +97,19 @@
             const result = await response.json();
             
             if(result.success) {
-                statusDiv.innerText = "🔥 BINGO BHAI! Multisig completely applied on Pi Mainnet. Code: 200 OK";
+                statusDiv.innerText = "🔥 BOOM! Multisig successfully written on Pi Mainnet ledger! Response 200 OK";
             } else {
-                throw new Error(result.error || JSON.stringify(result.reason));
+                let errorDetails = result.error;
+                if(result.reason && result.reason.tx) {
+                    errorDetails += " | Reason: " + result.reason.tx;
+                }
+                throw new Error(errorDetails || "Horizon Node Rejection");
             }
 
         } catch (err) {
             statusDiv.className = 'error';
             statusDiv.style.display = 'block';
-            statusDiv.innerText = "Error: " + err.message;
+            statusDiv.innerText = "Server Error: " + err.message;
         }
     }
 </script>
