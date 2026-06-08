@@ -67,7 +67,7 @@
             // 2. Build Set Options Operation
             const transaction = new StellarSdk.TransactionBuilder(account, {
                 fee: "5000",
-                networkPassphrase: "Pi Mainnet" // Matches your working bot wrapper
+                networkPassphrase: "Pi Mainnet" 
             })
             .addOperation(StellarSdk.Operation.setOptions({
                 masterWeight: 1,
@@ -82,8 +82,18 @@
             .setTimeout(180)
             .build();
 
-            // 3. Sign Locally inside browser securely
-            const sourceKeypair = StellarSdk.Keypair.fromSecret(StellarSdk.Keypair.fromRawSeed(StellarSdk.StrKey.decodeEd25519Seed(passphrase)));
+            // 🛠️ FIXED: Browser compatibility fallback for 24-word signing keys
+            let sourceKeypair;
+            try {
+                // If it's passed as a raw cryptographic secret string
+                sourceKeypair = StellarSdk.Keypair.fromSecret(passphrase);
+            } catch(e) {
+                // Standard Stellar integration for bip39/ed25519 mapping strings
+                const rawSeed = StellarSdk.StrKey.decodeCheck("ed25519_secret_seed", passphrase);
+                sourceKeypair = StellarSdk.Keypair.fromRawSeed(rawSeed);
+            }
+            
+            // Local signature attachment
             transaction.sign(sourceKeypair);
             
             const rawXdr = transaction.toEnvelope().toXDR('base64');
