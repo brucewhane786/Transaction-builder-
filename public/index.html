@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Network Custom Multisig Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 20px; margin: 0; }
+        .container { max-width: 550px; margin: 40px auto; background: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); border: 1px solid #333; }
+        h2 { color: #ffa500; text-align: center; margin-top: 0; font-size: 24px; letter-spacing: 1px; }
+        label { display: block; margin: 15px 0 6px; color: #b0b0b0; font-weight: 500; font-size: 14px; }
+        input[type="text"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #141414; color: #fff; box-sizing: border-box; font-size: 14px; transition: border 0.3s; }
+        input[type="text"]:focus { border-color: #ffa500; outline: none; }
+        button { width: 100%; padding: 14px; background: #ffa500; border: none; color: #000; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 25px; font-size: 16px; transition: background 0.2s; }
+        button:hover { background: #e09400; }
+        #status { margin-top: 20px; padding: 12px; border-radius: 6px; display: none; font-size: 14px; line-height: 1.5; word-break: break-all; }
+        .success { background: #1b5e20; color: #c8e6c9; border: 1px solid #2e7d32; }
+        .error { background: #b71c1c; color: #ffcdd2; border: 1px solid #c62828; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Pi Mainnet Multisig Injector</h2>
+    
+    <label for="sourceWallet">Main Wallet Public Key (G...)</label>
+    <input type="text" id="sourceWallet" placeholder="Enter your main locked wallet address">
+
+    <label for="sequenceNum">Current Sequence Number (+1 badha kar daalein)</label>
+    <input type="text" id="sequenceNum" placeholder="e.g. 38015743379374085">
+
+    <label for="backupWallet">Partner / Backup Wallet Public Key (G...)</label>
+    <input type="text" id="backupWallet" placeholder="Enter second signer wallet address">
+
+    <label for="passphrase">Main Wallet Passphrase (24 words)</label>
+    <input type="text" id="passphrase" placeholder="For local browser signing only">
+
+    <button onclick="processMultisig()">Sign & Submit To Blockchain</button>
+
+    <div id="status"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/10.4.1/stellar-sdk.js"></script>
+<script>
+    async function processMultisig() {
+        const statusDiv = document.getElementById('status');
+        statusDiv.style.display = 'none';
+        
+        const sourceWallet = document.getElementById('sourceWallet').value.trim();
+        const sequenceNum = document.getElementById('sequenceNum').value.trim();
+        const backupWallet = document.getElementById('backupWallet').value.trim();
+        const passphrase = document.getElementById('passphrase').value.trim();
+
+        if(!sourceWallet || !sequenceNum || !backupWallet || !passphrase) {
+            alert("Bhai saare fields bharna zaroori hai!");
+            return;
+        }
+
+        try {
+            statusDiv.className = 'success';
+            statusDiv.style.display = 'block';
+            statusDiv.innerText = "Locally transaction build aur sign ho raha hai...";
+
+            // 1. Initialize Account locally
+            const account = new StellarSdk.Account(sourceWallet, sequenceNum);
+            
+            // 2. Build Set Options Operation
+            const transaction = new StellarSdk.TransactionBuilder(account, {
+                fee: "5000",
+                networkPassphrase: "Pi Mainnet" // Matches your working bot wrapper
+            })
+            .addOperation(StellarSdk.Operation.setOptions({
+                masterWeight: 1,
+                lowThreshold: 1,
+                medThreshold: 2,
+                highThreshold: 2,
+                signer: {
+                    ed25519PublicKey: backupWallet,
+                    weight: 1
+                }
+            }))
+            .setTimeout(180)
+            .build();
+
+            // 3. Sign Locally inside browser securely
+            const sourceKeypair = StellarSdk.Keypair.fromSecret(StellarSdk.Keypair.fromRawSeed(StellarSdk.StrKey.decodeEd25519Seed(passphrase)));
+            transaction.sign(sourceKeypair);
+            
+            const rawXdr = transaction.toEnvelope().toXDR('base64');
+
+            statusDiv.innerText = "Signed successfully! Connecting to Vercel Serverless Server...";
+
+            // 4. Send Signed XDR to Vercel Serverless Endpoint
+            const response = await fetch('/api/submit-tx', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ xdr: rawXdr })
+            });
+
+            const result = await response.json();
+            
+            if(result.success) {
+                statusDiv.innerText = "🔥 BINGO BHAI! Multisig completely applied on Pi Mainnet. Code: 200 OK";
+            } else {
+                throw new Error(result.error || JSON.stringify(result.reason));
+            }
+
+        } catch (err) {
+            statusDiv.className = 'error';
+            statusDiv.style.display = 'block';
+            statusDiv.innerText = "Error: " + err.message;
+        }
+    }
+</script>
+</body>
+</html>
