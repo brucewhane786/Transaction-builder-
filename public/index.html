@@ -32,8 +32,8 @@
     <label for="backupWallet">Partner / Backup Wallet Public Key (G...)</label>
     <input type="text" id="backupWallet" placeholder="Enter second signer wallet address">
 
-    <label for="passphrase">Main Wallet Passphrase (24 words)</label>
-    <input type="text" id="passphrase" placeholder="For local browser signing only">
+    <label for="passphrase">Main Wallet Secret Seed / Passphrase</label>
+    <input type="text" id="passphrase" placeholder="Enter your secret key/seed string">
 
     <button onclick="processMultisig()">Sign & Submit To Blockchain</button>
 
@@ -82,18 +82,11 @@
             .setTimeout(180)
             .build();
 
-            // 🛠️ FIXED: Browser compatibility fallback for 24-word signing keys
-            let sourceKeypair;
-            try {
-                // If it's passed as a raw cryptographic secret string
-                sourceKeypair = StellarSdk.Keypair.fromSecret(passphrase);
-            } catch(e) {
-                // Standard Stellar integration for bip39/ed25519 mapping strings
-                const rawSeed = StellarSdk.StrKey.decodeCheck("ed25519_secret_seed", passphrase);
-                sourceKeypair = StellarSdk.Keypair.fromRawSeed(rawSeed);
-            }
+            // 🛠️ UNIVERSAL BROWSER COMPATIBLE METHOD
+            // Direct secret key parsing block without custom decoding subroutines
+            const sourceKeypair = StellarSdk.Keypair.fromSecret(passphrase);
             
-            // Local signature attachment
+            // Apply signature locally
             transaction.sign(sourceKeypair);
             
             const rawXdr = transaction.toEnvelope().toXDR('base64');
