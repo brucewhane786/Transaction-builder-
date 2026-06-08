@@ -1,0 +1,7 @@
+{
+  "name": "pi-multisig-vercel",
+  "version": "1.0.0",
+  "dependencies": {
+    "stellar-sdk": "^10.4.1"
+  }
+}
